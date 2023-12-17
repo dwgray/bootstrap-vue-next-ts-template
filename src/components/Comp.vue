@@ -25,7 +25,7 @@
               </template>
             </BFormSelect>
 
-            <!-- TODO: Should BFormSelect model accept a boolean? -->
+            <!-- TODO: This should be fixed by PR #1667 - https://github.com/bootstrap-vue-next/bootstrap-vue-next/pull/1667 -->
             <BFormSelect
               v-model="sortDesc"
               :disabled="!sortBy"
@@ -131,14 +131,6 @@
     </BRow>
 
     <!-- Main table element -->
-    <!-- TODO: 
-      I can get rid of the warning on item and filtered by doing the following casts, but then
-      Volar gets completely messed up. I could probably fix this by creating differently
-      typed verssions of item and onFiltered, but it seems like the better solution is to
-      make the table component generic.
-      :items="items as unknown as TableItem[]"
-      @filtered="onFiltered as unknown as () => void"
-     -->
     <BTable
       v-model:sort-by="sortBy"
       v-model:sort-desc="sortDesc"
@@ -218,7 +210,12 @@ interface Person {
   isActive: boolean;
 }
 
-const items: TableItem<Person>[] = [
+//  TODO: This should be type TableItem<Person>[], but until we have a generic table definition,
+//   declaring this to take plain TableItem[] is the best we can do.  In this simple case it works
+//   fine, but if we needed to make use of the fact that it is actually TableItem<Person>[], we would
+//   need to cast it everywhere we use it.
+
+const items = [
   { isActive: true, age: 40, name: { first: "Dickerson", last: "Macdonald" } },
   { isActive: false, age: 21, name: { first: "Larsen", last: "Shaw" } },
   {
@@ -241,9 +238,9 @@ const items: TableItem<Person>[] = [
   { isActive: false, age: 22, name: { first: "Genevieve", last: "Wilson" } },
   { isActive: true, age: 38, name: { first: "John", last: "Carney" } },
   { isActive: false, age: 29, name: { first: "Dick", last: "Dunlap" } },
-];
+] as TableItem[];
 
-const fields: TableField[] = [
+const fields: Exclude<TableField, string>[] = [
   {
     key: "name",
     label: "Person full name",
@@ -291,8 +288,6 @@ const infoModal = reactive({
 });
 
 // Create an options list from our fields
-// TODO: These errors could be fixed if we export TableFieldObject from bootstrap-vue-next
-//  and use that instead of TableField when declaring
 const sortOptions = computed(() =>
   fields.filter((f) => f.sortable).map((f) => ({ text: f.label, value: f.key }))
 );
@@ -310,7 +305,10 @@ function resetInfoModal() {
   infoModal.content = "";
 }
 
-function onFiltered(filteredItems: TableItem<Person>[]) {
+// TODO: We know that this actually takes a TableItem<Person>[], but until we have a generic
+// table definition, declaring this to take plain TableItem[] is the best we can do. If we
+// needed to make use of the fact that it is actually TableItem<Person>[], we could cast
+function onFiltered(filteredItems: TableItem[]) {
   // Trigger pagination to update the number of buttons/pages due to filtering
   totalRows.value = filteredItems.length;
   currentPage.value = 1;
